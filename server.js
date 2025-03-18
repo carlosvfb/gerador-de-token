@@ -24,9 +24,9 @@ async function startBrowser() {
   try {
     const executablePath = (await chromium.executablePath) || (await getExecutablePath());
 
-    browser = await puppeteer.launch({
-      headless: true,
-      args: chromium.args || [
+    const browser = await puppeteer.launch({
+      headless: "new",
+      args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
         "--disable-dev-shm-usage",
@@ -34,9 +34,8 @@ async function startBrowser() {
         "--no-first-run",
         "--no-zygote",
       ],
-      executablePath: executablePath,
-      defaultViewport: chromium.defaultViewport || null,
     });
+    
 
     page = await browser.newPage();
     await page.goto("https://pncp.gov.br/app/editais/02056760000146/2025/4", {
