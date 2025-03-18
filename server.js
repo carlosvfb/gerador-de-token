@@ -1,5 +1,6 @@
 const express = require("express");
-const puppeteer = require("puppeteer");
+const puppeteer = require("puppeteer-core");
+const chromium = require("chrome-aws-lambda");
 
 const app = express();
 const PORT = 5000;
@@ -16,15 +17,11 @@ async function startBrowser() {
   try {
     browser = await puppeteer.launch({
       headless: true,
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-        "--no-first-run",
-        "--no-zygote",
-      ],
+      args: chromium.args, // Passa os argumentos do Chromium para evitar erros em servidores sem display
+      executablePath: await chromium.executablePath, // Pega o caminho correto do Chromium no ambiente
+      defaultViewport: chromium.defaultViewport, // Ajusta a resolução da janela
     });
+
     page = await browser.newPage();
 
     await page.goto("https://pncp.gov.br/app/editais/02056760000146/2025/4", {
