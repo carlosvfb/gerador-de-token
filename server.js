@@ -14,7 +14,17 @@ let isGenerating = false; // Evita múltiplas execuções ao mesmo tempo
 // Inicia o Puppeteer e carrega a página
 async function startBrowser() {
   try {
-    browser = await puppeteer.launch({ headless: true });
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--no-first-run",
+        "--no-zygote",
+      ],
+    });
     page = await browser.newPage();
 
     await page.goto("https://pncp.gov.br/app/editais/02056760000146/2025/4", {
