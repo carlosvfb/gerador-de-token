@@ -3,7 +3,7 @@ const puppeteer = require("puppeteer-core");
 const chromium = require("chrome-aws-lambda");
 
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
 app.use(express.json());
 
@@ -12,18 +12,33 @@ let page;
 let tokenQueue = []; // Armazena sempre 2 tokens
 let isGenerating = false; // Evita múltiplas execuções ao mesmo tempo
 
+// Função para obter o caminho correto do Chromium
+async function getExecutablePath() {
+  if (process.platform === "win32") return "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+  if (process.platform === "darwin") return "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+  return "/usr/bin/chromium"; // Caminho padrão no Linux
+}
+
 // Inicia o Puppeteer e carrega a página
 async function startBrowser() {
   try {
+    const executablePath = (await chromium.executablePath) || (await getExecutablePath());
+
     browser = await puppeteer.launch({
       headless: true,
-      args: chromium.args, // Passa os argumentos do Chromium para evitar erros em servidores sem display
-      executablePath: await chromium.executablePath, // Pega o caminho correto do Chromium no ambiente
-      defaultViewport: chromium.defaultViewport, // Ajusta a resolução da janela
+      args: chromium.args || [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--no-first-run",
+        "--no-zygote",
+      ],
+      executablePath: executablePath,
+      defaultViewport: chromium.defaultViewport || null,
     });
 
     page = await browser.newPage();
-
     await page.goto("https://pncp.gov.br/app/editais/02056760000146/2025/4", {
       waitUntil: "networkidle2",
     });
@@ -93,13 +108,12 @@ app.get("/api/token", async (req, res) => {
       console.log("⚠️ Nenhum token disponível, gerando um novo...");
       await generateNewToken();
     }
+    generateNewToken();
 
     const token = tokenQueue.shift();
-
     res.json({ token });
 
     // Garante que sempre há um token novo pronto
-    generateNewToken();
   } catch (error) {
     console.error("❌ Erro ao fornecer token:", error);
     res.status(500).json({ error: "Erro ao fornecer o token" });
